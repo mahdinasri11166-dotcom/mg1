@@ -83,7 +83,9 @@ class UsbRadioBridge(
     fun start() {
         if (!AppState.useUsbRadioMesh) return
         val band = AppState.usbRadioBand.lowercase()
-        val allowed = AppState.allowedUsbRadioBands.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+        val allowed = AppState.allowedUsbRadioBands.split(",")
+            .map { it.trim().lowercase() }
+            .filter { it.isNotEmpty() }
         if (allowed.isNotEmpty() && band !in allowed) {
             onStatus("باند رادیو $band در فهرست مجاز سازمان نیست")
             return
@@ -101,7 +103,7 @@ class UsbRadioBridge(
         }
         scope.launch {
             onStatus("رادیو USB: جستجوی ماژول…")
-            while (running && AppState.useUsbRadioMesh) {
+            while (running && AppState.useUsbRadioMesh && isActive) {
                 try {
                     if (conn == null) {
                         scanAndConnect()
@@ -113,7 +115,7 @@ class UsbRadioBridge(
             }
         }
         scope.launch {
-            while (running && AppState.useUsbRadioMesh) {
+            while (running && AppState.useUsbRadioMesh && isActive) {
                 try {
                     val p = outQueue.poll()
                     if (p != null) writeFrame(p)
@@ -260,7 +262,8 @@ class UsbRadioBridge(
         val inp = epIn ?: return
         val buf = ByteArray(512)
         val acc = ArrayList<Byte>(1024)
-        while (running && isActive && conn != null) {
+        // Use a local CoroutineScope from the current context to safely access isActive
+        while (running && conn != null && coroutineContext.isActive) {
             try {
                 val n = c.bulkTransfer(inp, buf, buf.size, 500)
                 if (n == null || n <= 0) {
