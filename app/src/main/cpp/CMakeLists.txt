@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(ghostmago_native)
+add_library(ghostmago_native SHARED native-lib.cpp)
+find_library(log-lib log)
+target_link_libraries(ghostmago_native ${log-lib})
